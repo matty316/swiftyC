@@ -1,19 +1,50 @@
 #!/usr/bin/env ruby
 
-if ARGV.count == 0
+require 'optparse'
+
+options = {}
+OptionParser.new do |opt|
+  opt.on('--lex') { |o| options[:lex] = true }
+  opt.on('--parse') { |o| options[:parse] = true }
+  opt.on('--codegen') { |o| options[:codegen] = true }
+  opt.on('--build') { |o| options[:build] = true }
+end.parse!
+
+if options[:build]
+    puts `swift build`
+end
+
+if ARGV[0] == nil 
     exit(65)
 end
 
 input_file = ARGV[0]
-flags = ARGV[1..]
-processed_file = input_file[0..-3]
 
-`gcc -E -P #{input_file} -o #{processed_file}.i`
+processed_file = input_file.sub ".c", ".i"
 
-if flags != nil
-    puts `.build/debug/swiftyC #{input_file} #{flags.join(" ")}`
-else
-    puts `.build/debug/swiftyC #{input_file}` 
+`gcc -E -P #{input_file} -o #{processed_file}`
+
+flags = []
+if options[:lex] 
+    flags.push("--lex")
 end
 
-`gcc return_2.s -o #{processed_file}`
+if options[:parse]
+    flags.push("--parse")
+end
+
+if options[:codegen]
+    flags.push("--codegen")
+end
+
+
+ puts `/Users/matthewreed/projects/swift-c-compiler/.build/debug/swiftyC #{processed_file} #{flags.join(" ")}`
+
+ if $? != 0
+    exit(1)
+ end
+
+assm_filename = input_file.sub ".c", ".s"
+output_file = input_file.sub ".c", ""
+
+`gcc #{assm_filename} -o #{output_file}`

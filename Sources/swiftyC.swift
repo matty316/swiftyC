@@ -26,26 +26,50 @@ struct SwiftyC: ParsableCommand {
         do {
             let source = try String(contentsOf: url)
             if lex {
-                lex(source: source)
+                let tokens = try lex(source: source)
+                print(tokens)
             } else if parse {
-                lex(source: source)
-                // parse
-                print("no lex")
+                let tokens = try lex(source: source)
+                let program = try parse(tokens: tokens)
+                print(program.print())
             } else if codegen {
-                lex(source: source)
-                // parse
-                // codegen
+                let tokens = try lex(source: source)
+                let program = try parse(tokens: tokens)
+                try codegen(program: program)
             } else {
-                lex(source: source)
-                // BITCH EVERYTHING
+                let tokens = try lex(source: source)
+                let program = try parse(tokens: tokens)
+                let programInstruction = try codegen(program: program)
+                let c = Compiler(programInstruction: programInstruction, filename: filename)
+                print(try c.emit())
             }
+        } catch let error as LexerError {
+            print(error.message)
+            Self.exit(withError: ExitCode(65))
+        } catch let error as ParserError {
+            print(error.message)
+            Self.exit(withError: ExitCode(65))
         } catch {
+            print(error.localizedDescription)
             Self.exit(withError: ExitCode(65))
         }
     }
     
-    func lex(source: String) {
+    @discardableResult
+    func lex(source: String) throws -> [Token] {
         let l = Lexer(source: source)
-        
+        return try l.scan()
+    }
+    
+    @discardableResult
+    func parse(tokens: [Token]) throws -> Program {
+        let p = Parser(tokens: tokens)
+        return try p.parse()
+    }
+    
+    @discardableResult
+    func codegen(program: Program) throws -> ProgramInstruction {
+        let ap = AssemblyParser(program: program)
+        return try ap.parse()
     }
 }
