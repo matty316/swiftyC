@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+if ARGV.count == 0
+    exit(65)
+end
+
+input_file = ARGV[0]
+flags = ARGV[1..]
+processed_file = input_file[0..-3]
+
+`gcc -E -P #{input_file} -o #{processed_file}.i`
+
+if flags != nil
+    puts `.build/debug/swiftyC #{input_file} #{flags.join(" ")}`
+else
+    puts `.build/debug/swiftyC #{input_file}` 
+end
+
+`gcc return_2.s -o #{processed_file}`
